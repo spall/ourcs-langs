@@ -14,7 +14,7 @@
          (prefix-in : parser-tools/lex-sre))
 
 (provide
- #%datum #%app provide
+ #%datum #%app provide + -
  (rename-out [readsyntax read-syntax]
              [customread read]
              [custom-module #%module-begin]))
@@ -42,10 +42,10 @@
    [#\newline (calc-lexer input-port)]
    [(eof) 'EOF]
    [space (calc-lexer input-port)]
-   [#\+ 'PLUS #;(cons 'PLUS (infix-lexer input-port))]
-   [#\- 'MINUS #;(cons 'MINUS (infix-lexer input-port))]
-   [(:+ digit) (cons (token-NUM (string->number lexeme))
-                     (infix-lexer input-port))]))
+   [#\+ 'PL #;(cons 'PLUS (infix-lexer input-port))]
+   [#\- 'MN #;(cons 'MINUS (infix-lexer input-port))]
+   [(:+ digit) (token-NUM (string->number lexeme))]))
+                    ; (infix-lexer input-port))]))
 
 
 (define calc-parser
@@ -61,8 +61,8 @@
 
     (s [(ln-list) (reverse $1)])
 
-    (ln [(PLUS infix) `(plus ,$2) #;(datum->syntax #f `(plus ,$1))]
-        [(MINUS infix) `(minus ,$2) #;(datum->syntax #f `(minus ,$1))])
+    (ln [(PL infix) `(plus ,$2) #;(datum->syntax #f `(plus ,$1))]
+        [(MN infix) `(minus ,$2) #;(datum->syntax #f `(minus ,$1))])
 
     (infix [(NUM) $1]
            [(infix PL infix) `(+ ,$1 ,$3)]
