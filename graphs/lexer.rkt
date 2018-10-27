@@ -14,20 +14,20 @@
 
 (define-lex-abbrevs
   [spaces (:* (:or #\space #\tab))]
-  [node (:+ alphabetic)]
   [weight (:+ numeric)]
   [name (:+ (:or alphabetic numeric))])
 
 (define edge-lexer
   (lexer
-   [(:: spaces node spaces "-->" spaces node spaces #\])
+   [(:: spaces name spaces "->" spaces name spaces #\])
     (let ([ls (string-split (string-trim lexeme "]" #:left? #f))])
       `(,(first ls) ;; node1
         ,(third ls)))])) ;; node2
 
 (define wedge-lexer
   (lexer
-   [(:: weight spaces #\;) (token-WEDGE `(,(string->number (string-trim lexeme))
+   [(:: spaces weight spaces #\;) (token-WEDGE `(,(let ([rs (string->number (string-trim (string-trim lexeme ";" #:left? #f)))])
+                                                    rs)
                                     ,@(edge-lexer input-port)))]  ;; weight 
    [(:: spaces #\;) (token-EDGE `(#f
                             ,@(edge-lexer input-port)))]))
@@ -97,9 +97,21 @@ graph := graph-type letters+numbers { nodes : list-of-nodes
 
 
 (define ip (open-input-string "digraph graph1 { nodes : {a, b, c}
-                                                edges : { [ ; a --> b], [ ; b --> c] }
+                                                edges : { [ ; a -> b], [ ; b -> c] }
                                               }"))
 (graph-parser (lambda () (graph-lexer ip)))
+
+(define ip2 (open-input-string "digraph graph1 { nodes : {a, b, c}
+                                                edges : { [5 ; a -> b], [7 ; b -> c] }
+                                              }"))
+
+(define ip3 (open-input-string "digraph divisibility50 { nodes : {1, 2, 3}
+                                                         edges : {[ 5 ; 7 -> 1 ], [ 3 ; 3 -> 1 ]}}"))
+
+(graph-parser (lambda () (graph-lexer ip3)))
+
+(define fp (open-input-file "../div-graph" #:mode 'text))
+(graph-parser (lambda () (graph-lexer fp)))
 
    
    
