@@ -1,7 +1,14 @@
 #lang racket
 
-;; graphviz: Graph -> DotFileFormat
-(define (graphviz g)
+(provide graphviz graphviz-string)
+
+(define (graphviz g output)
+  (with-input-from-string
+    (graphviz-string g)
+    (lambda () (system (string-append "dot -Tpng > " output)))))
+
+;; graphviz-string: Graph -> DotFileFormat
+(define (graphviz-string g)
   (define graph-init "graph graphname {")
   (define graph-inner (extract-edges g))
   (define graph-after "}")
