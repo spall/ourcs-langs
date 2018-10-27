@@ -9,7 +9,7 @@
 
     `(,graph-type ,name ,listofnodes ,listofedges)
 |#
-(define-tokens data (WEDGE EDGE NODE GTYPE NAME))
+(define-tokens data (WEDGE EDGE GTYPE NAME))
 (define-empty-tokens delim (OB CB EOF))
 
 (define-lex-abbrevs
@@ -20,10 +20,10 @@
 
 (define edge-lexer
   (lexer
-   [spaces (edge-lexer input-port)]
-   [(:: node spaces "-->" spaces node) (let ([ls (string->list lexeme)])
-                                         `(,(first ls) ;; node1
-                                           ,(third ls)))])) ;; node2
+   [(:: spaces node spaces "-->" spaces node spaces #\])
+    (let ([ls (string-split (string-trim lexeme "]" #:left? #f))])
+      `(,(first ls) ;; node1
+        ,(third ls)))])) ;; node2
 
 (define wedge-lexer
   (lexer
@@ -62,7 +62,6 @@ graph := graph-type letters+numbers { nodes : list-of-nodes
    [#\} (graph-lexer input-port)]
    [(:: "nodes" spaces #\:) (graph-lexer input-port)]
    [(:: "edges" spaces #\:) (graph-lexer input-port)]
- ;  [node (token-NODE lexeme)]
    [#\[ (wedge-lexer input-port)]))
    
 #|
@@ -82,28 +81,25 @@ graph := graph-type letters+numbers { nodes : list-of-nodes
 
    (grammar
    
-   (graph [(GTYPE NAME nodes edges)
-           `(,$1 ,$2 ,(reverse $3) ,(reverse $4))]
-          [(GTYPE NAME nodes wedges)
-           `(,$1 ,$2 ,(reverse $3) ,(reverse $4))])
-
-   (nodes [(NAME) (list $1)]
-          [(nodes NAME) (cons $2 $1)])
-
-   (edges [() null]
-          [(edges EDGE) (cons $2 $1)])
-
-   (wedges [() null]
-           [(wedges WEDGE) (cons $2 $1)]))))
+    (graph [(GTYPE NAME nodes edges)
+            `(,$1 ,$2 ,(reverse $3) ,(reverse $4))]
+           [(GTYPE NAME nodes wedges)
+            `(,$1 ,$2 ,(reverse $3) ,(reverse $4))])
+    
+    (nodes [(NAME) (list $1)]
+           [(nodes NAME) (cons $2 $1)])
+    
+    (edges [() null]
+           [(edges EDGE) (cons $2 $1)])
+    
+    (wedges [() null]
+            [(wedges WEDGE) (cons $2 $1)]))))
 
 
 (define ip (open-input-string "digraph graph1 { nodes : {a, b, c}
                                                 edges : { [ ; a --> b], [ ; b --> c] }
                                               }"))
 (graph-parser (lambda () (graph-lexer ip)))
-   
-   
-   
 
    
    
