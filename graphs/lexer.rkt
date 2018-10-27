@@ -1,9 +1,40 @@
 #lang racket
 
-
 (require parser-tools/lex
          parser-tools/yacc
          (prefix-in : parser-tools/lex-sre))
+
+(provide #%app #%datum graph define quote ;(all-from-out racket)
+         (rename-out [read-syntax_ read-syntax]
+                     [read_ read]
+                     [custom-module #%module-begin]))
+
+(define (read_ ip)
+  (syntax->datum
+   (read-syntax_ #f ip)))
+
+(define (read-syntax_ path ip)
+  (define parsed-graph (graph-parser (lambda () (graph-lexer ip))))
+  (define module-datum `(module graph "lexer.rkt"
+                          ,parsed-graph))
+  (datum->syntax #f module-datum))
+
+(define-syntax-rule (custom-module body)
+  (#%module-begin (provide (all-defined-out)) body))
+
+(define (graph g)
+  (match g
+    [`(,type ,name ,nodes ,edges)
+     (datum->syntax #f `(define ,(string->symbol name)
+                          '(,type ,name ,nodes ,edges)))]))
+
+#;(define-syntax (graph stx)
+  (display stx)
+  (syntax-rules ()
+    [(_ type name (nodes ...) (edges ...))
+     #`(define #,(datum->syntax #'here #,(string->symbol name))
+         (#,#'type #,#'name #,#'(nodes ...) #,#'(edges ...)))]))
+  
 
 #|  `(,weight ,n1 ,n2)  ;; edge
 
@@ -82,9 +113,9 @@ graph := graph-type letters+numbers { nodes : list-of-nodes
    (grammar
    
     (graph [(GTYPE NAME nodes edges)
-            `(,$1 ,$2 ,(reverse $3) ,(reverse $4))]
+            (graph `(,$1 ,$2 ,(reverse $3) ,(reverse $4)))]
            [(GTYPE NAME nodes wedges)
-            `(,$1 ,$2 ,(reverse $3) ,(reverse $4))])
+            (graph `(,$1 ,$2 ,(reverse $3) ,(reverse $4)))])
     
     (nodes [(NAME) (list $1)]
            [(nodes NAME) (cons $2 $1)])
@@ -95,7 +126,7 @@ graph := graph-type letters+numbers { nodes : list-of-nodes
     (wedges [() null]
             [(wedges WEDGE) (cons $2 $1)]))))
 
-
+#|
 (define ip (open-input-string "digraph graph1 { nodes : {a, b, c}
                                                 edges : { [ ; a -> b], [ ; b -> c] }
                                               }"))
@@ -112,7 +143,12 @@ graph := graph-type letters+numbers { nodes : list-of-nodes
 
 (define fp (open-input-file "../div-graph" #:mode 'text))
 (graph-parser (lambda () (graph-lexer fp)))
+|#
 
+(define ip (open-input-string "digraph example1 { nodes : {a ,b, c}
+                   edges: { [ ; a -> b ] , [ ; b -> c ] }}"))
+
+;(graph-parser (lambda () (graph-lexer ip)))
    
    
    
