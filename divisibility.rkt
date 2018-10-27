@@ -23,7 +23,7 @@
     (fprintf o (list->csv
                (lambda (l) (format "[ ~s ; ~s -> ~s ]" (third l) (first l) (second l)))
                edges))
-    (fprintf o "\n")
+    (fprintf o "}}\n")
     (close-output-port o)))
 
 (write-divisibility-graph 50)
