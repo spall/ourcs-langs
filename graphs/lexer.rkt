@@ -5,7 +5,7 @@
          (for-syntax syntax/parse)
          (prefix-in : parser-tools/lex-sre))
 
-(provide #%app #%datum begin all-defined-out graph edge define quote 
+(provide #%app #%datum begin all-defined-out graph graphs edge define quote 
          (rename-out [read-syntax_ read-syntax]
                      [read_ read]
                      [custom-module #%module-begin]))
@@ -20,18 +20,22 @@
                           ,parsed-graph))
   (datum->syntax #f module-datum))
 
-(define-syntax-rule (custom-module body)
-  (#%module-begin 
-                  body))           
+(define-syntax-rule (custom-module graph ...)
+  (#%module-begin
+                  graph ...))
+
+(define-syntax (graphs stx)
+  (syntax-case stx ()
+    [(_ graph ...)
+     #'(begin graph ...)]))
 
 (define-syntax (graph stx)
-  (display stx)
   (syntax-case stx ()
     [(_ type name (node ...) (edge ...))
      (syntax-case (datum->syntax #'help (string->symbol (syntax->datum #'name))) ()
        [var
         #'(begin (define var (list type name (list node ...) (list edge ...)))
-                (provide var))
+                 (provide var))
         ])]))
 
 (define-syntax (edge stx)
@@ -108,13 +112,18 @@ graph := graph-type letters+numbers { nodes : list-of-nodes
 (define graph-parser
   (parser
 
-   (start graph)
+   (start g)
    (end EOF)
    (error (lambda (a b c)
             (error 'graph-parser "Error on token ~a with value ~a" b c)))
    (tokens data delim)
 
    (grammar
+
+    (g [(graphs) `(graphs ,@(reverse $1))])
+    
+    (graphs [() null]
+            [(graphs graph) (cons $2 $1)])
    
     (graph [(GTYPE NAME nodes edges)
             `(graph ,$1 ,$2 ,(reverse $3) ,(reverse $4))]
