@@ -1,16 +1,24 @@
 #lang racket
 
-(provide graphviz graphviz-string)
+(require 2htdp/image)
+(provide graphviz graphviz-to-file graphviz-string)
 
-(define (graphviz g output)
+; bitmap/file
+
+(define (graphviz g)
+  (let ([tmp (make-temporary-file)])
+    (graphviz-to-file g (path->string tmp))
+    (bitmap/file tmp)))
+
+(define (graphviz-to-file g output)
   (with-input-from-string
     (graphviz-string g)
     (lambda () (system (string-append "dot -Tpng > " output)))))
 
 ;; graphviz-string: Graph -> DotFileFormat
 (define (graphviz-string g)
-  (define graph-init "graph graphname {")
-  (define graph-inner (extract-edges g))
+  (define graph-init (format "digraph ~a {" (cadr g)))
+  (define graph-inner (extract-edges (cadddr g)))
   (define graph-after "}")
   (string-append graph-init graph-inner graph-after))
 
@@ -24,5 +32,6 @@
 ;; generate-string: Pair -> String
 ;; (w a b) == "a -> b;"
 (define (generate-string p)
-  (string-append (second p) " -> " (third p) "; "))
-
+  (if (first p)
+    (format "~s -> ~s [label=\"~s\"]; " (second p) (third p) (first p))
+    (format "~s -> ~s; " (second p) (third p))))
